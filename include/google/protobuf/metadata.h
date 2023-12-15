@@ -1,5 +1,5 @@
 // Protocol Buffers - Google's data interchange format
-// Copyright 2012 Google Inc.  All rights reserved.
+// Copyright 2008 Google Inc.  All rights reserved.
 // https://developers.google.com/protocol-buffers/
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,49 +28,51 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-// from google3/base/stringprintf.h
+// This header file defines an internal class that encapsulates internal message
+// metadata (Unknown-field set, Arena pointer, ...) and allows its
+// representation to be made more space-efficient via various optimizations.
 //
-// Printf variants that place their output in a C++ string.
-//
-// Usage:
-//      string result = StringPrintf("%d %s\n", 10, "hello");
-//      SStringPrintf(&result, "%d %s\n", 10, "hello");
-//      StringAppendF(&result, "%d %s\n", 20, "there");
+// Note that this is distinct from google::protobuf::Metadata, which encapsulates
+// Descriptor and Reflection pointers.
 
-#ifndef GOOGLE_PROTOBUF_STUBS_STRINGPRINTF_H
-#define GOOGLE_PROTOBUF_STUBS_STRINGPRINTF_H
+#ifndef GOOGLE_PROTOBUF_METADATA_H__
+#define GOOGLE_PROTOBUF_METADATA_H__
 
-#include <stdarg.h>
-#include <string>
-#include <vector>
-
-#include <google/protobuf/stubs/common.h>
+#include <google/protobuf/metadata_lite.h>
+#include <google/protobuf/unknown_field_set.h>
 
 namespace google {
 namespace protobuf {
+namespace internal {
 
-// Return a C++ string
-LIBPROTOBUF_EXPORT extern string StringPrintf(const char* format, ...);
+class InternalMetadataWithArena
+    : public InternalMetadataWithArenaBase<UnknownFieldSet,
+                                           InternalMetadataWithArena> {
+ public:
+  InternalMetadataWithArena() {}
+  explicit InternalMetadataWithArena(Arena* arena)
+      : InternalMetadataWithArenaBase<UnknownFieldSet,
+                                           InternalMetadataWithArena>(arena) {}
 
-// Store result into a supplied string and return it
-LIBPROTOBUF_EXPORT extern const string& SStringPrintf(string* dst, const char* format, ...);
+  void DoSwap(UnknownFieldSet* other) {
+    mutable_unknown_fields()->Swap(other);
+  }
 
-// Append result to a supplied string
-LIBPROTOBUF_EXPORT extern void StringAppendF(string* dst, const char* format, ...);
+  void DoMergeFrom(const UnknownFieldSet& other) {
+    mutable_unknown_fields()->MergeFrom(other);
+  }
 
-// Lower-level routine that takes a va_list and appends to a specified
-// string.  All other routines are just convenience wrappers around it.
-LIBPROTOBUF_EXPORT extern void StringAppendV(string* dst, const char* format, va_list ap);
+  void DoClear() {
+    mutable_unknown_fields()->Clear();
+  }
 
-// The max arguments supported by StringPrintfVector
-LIBPROTOBUF_EXPORT extern const int kStringPrintfVectorMaxArgs;
+  static const UnknownFieldSet& default_instance() {
+    return *UnknownFieldSet::default_instance();
+  }
+};
 
-// You can use this version when all your arguments are strings, but
-// you don't know how many arguments you'll have at compile time.
-// StringPrintfVector will LOG(FATAL) if v.size() > kStringPrintfVectorMaxArgs
-LIBPROTOBUF_EXPORT extern string StringPrintfVector(const char* format, const std::vector<string>& v);
-
+}  // namespace internal
 }  // namespace protobuf
-}  // namespace google
 
-#endif  // GOOGLE_PROTOBUF_STUBS_STRINGPRINTF_H
+}  // namespace google
+#endif  // GOOGLE_PROTOBUF_METADATA_H__
